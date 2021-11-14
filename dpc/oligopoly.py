@@ -59,15 +59,17 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
 
         # if we have only 2 competitors we use the minimum price anyone used
         if n_competitors == 2:
-            next_price_p1 = np.min(last_prices_p1).round(1)
-            next_price_p2 = np.min(last_prices_p2).round(1)
-            next_price_p3 = np.min(last_prices_p3).round(1)
+            min_red_factor = 0.05
+            next_price_p1 = np.min(last_prices_p1).round(1) * (1 - min_red_factor)
+            next_price_p2 = np.min(last_prices_p2).round(1) * (1 - min_red_factor)
+            next_price_p3 = np.min(last_prices_p3).round(1) * (1 - min_red_factor)
 
         # if we have more than 2 competitors we use the mean price anyone used
         elif n_competitors > 2:
-            next_price_p1 = np.mean(last_prices_p1).round(1)
-            next_price_p2 = np.mean(last_prices_p2).round(1)
-            next_price_p3 = np.mean(last_prices_p3).round(1)
+            z_score_red_factor = 0.1
+            next_price_p1 = np.mean(last_prices_p1).round(1) - z_score_red_factor * np.std(last_prices_p1)
+            next_price_p2 = np.mean(last_prices_p2).round(1) - z_score_red_factor * np.std(last_prices_p1)
+            next_price_p3 = np.mean(last_prices_p3).round(1) - z_score_red_factor * np.std(last_prices_p1)
 
         # Update information dump message
         information_dump["Message"] = ""
