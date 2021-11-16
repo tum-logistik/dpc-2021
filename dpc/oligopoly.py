@@ -6,6 +6,7 @@ Created on Tue June 11 10:56:03 2019
 """
 
 import numpy as np
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
@@ -36,7 +37,7 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         }
 
         random_prices = np.round(np.random.uniform(30, 80, 3), 1)
-
+        # return ([79, 79, 79], information_dump)
         return (random_prices, information_dump)
 
     else:
@@ -57,21 +58,43 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         last_prices_p2 = prices_historical[1:, 1, -1]
         last_prices_p3 = prices_historical[1:, 2, -1]
 
+
+        my_last_price = prices_historical[0, :, :]
+
+        # Product prices
+        last_prices_item1 = prices_historical[:, 0, :]
+        last_prices_item2 = prices_historical[:, 1, :]
+        last_prices_item3 = prices_historical[:, 2, :]
+
+        # Use exponential smoothing to forecast expected competitor price.
+        alpha = 0.55
+        fit_item1 = SimpleExpSmoothing(np.asarray(last_prices_item1)).fit(smoothing_level=alpha,optimized=False)
+        fit_item2 = SimpleExpSmoothing(np.asarray(last_prices_item2)).fit(smoothing_level=alpha,optimized=False)
+        fit_item3 = SimpleExpSmoothing(np.asarray(last_prices_item3)).fit(smoothing_level=alpha,optimized=False)
+
+        # Expected pricing of each competitor, call this theta value
+        item1_price = fit_item1.forecast(1)[0]
+        item2_price = fit_item2.forecast(1)[0]
+        item3_price = fit_item3.forecast(1)[0]
+        market_price = [item1_price, item2_price, item3_price]
+        # Save competitor theta and demand
+
         # if we have only 2 competitors we use the minimum price anyone used
         if n_competitors == 2:
             min_red_factor = 0.05
             next_price_p1 = np.min(last_prices_p1).round(1) * (1 - min_red_factor)
             next_price_p2 = np.min(last_prices_p2).round(1) * (1 - min_red_factor)
             next_price_p3 = np.min(last_prices_p3).round(1) * (1 - min_red_factor)
-
+        
         # if we have more than 2 competitors we use the mean price anyone used
         elif n_competitors > 2:
             z_score_red_factor = 0.1
             next_price_p1 = np.mean(last_prices_p1).round(1) - z_score_red_factor * np.std(last_prices_p1)
-            next_price_p2 = np.mean(last_prices_p2).round(1) - z_score_red_factor * np.std(last_prices_p1)
-            next_price_p3 = np.mean(last_prices_p3).round(1) - z_score_red_factor * np.std(last_prices_p1)
+            next_price_p2 = np.mean(last_prices_p2).round(1) - z_score_red_factor * np.std(last_prices_p2)
+            next_price_p3 = np.mean(last_prices_p3).round(1) - z_score_red_factor * np.std(last_prices_p3)
 
         # Update information dump message
         information_dump["Message"] = ""
+        return ([998, 998, 998], information_dump)
 
         return ([next_price_p1, next_price_p2, next_price_p3], information_dump)

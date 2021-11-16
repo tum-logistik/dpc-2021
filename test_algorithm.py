@@ -329,6 +329,7 @@ def test_run_oligopoly(user_code, n_selling_periods, print_output = False):
 
         if selling_period_in_current_season > 1:
             user_results.at[len(user_results)-1, "Demand"] = request_input["demand_historical"][-1]
+            d1 = request_input["demand_historical"][:, -1]
             user_results.at[len(user_results)-1, "Revenue"] = sum(request_input["demand_historical"][:, -1] * price)
 
         start_time = time.time()
