@@ -143,6 +143,10 @@ def p(
         last_3_prices_competitor = prices_competitor[-3:]
         next_price = np.mean(last_3_prices_competitor) * (1 + ma_adjustment)
 
+        # Adjust price if the price is illegal
+        if next_price < 0.05:
+            next_price = round(np.random.uniform(3, 50), 1)
+
         information_dump["Message"] = "Moving Average"
         information_dump["Selling_Season"] = current_selling_season
         information_dump["Selling_Period"] = selling_period_in_current_season
