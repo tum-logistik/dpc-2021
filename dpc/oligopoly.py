@@ -2,11 +2,55 @@
 """
 Created on Tue June 11 10:56:03 2019
 
-@author: Paul
+@author: Larkin
 """
 
 import numpy as np
+import pandas as pd
 from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
+
+def action_binner(v):
+    # 4 categories of actions
+    # Small undercut -1
+    if v < 1.0 and v > 0.95:
+        return "-1"
+    # small premium +1
+    if v > 1.0 and v < 1.05:
+        return "+1"
+    # medium undercut
+    if v <= 0.95 and v > 0.7:
+        return "-2"
+    # medium premium
+    if v >= 1.05 and v < 1.3:
+        return "+2"
+    # large undercut
+    if v <= 0.7:
+        return "-3"
+    # medium premium
+    if v >= 1.3:
+        return "+3"
+    return "+1"
+
+def olig_mab_mechanism(mab_input):
+    mab_arr = np.asarray(mab_input)
+    thetas = mab_arr[:, 0]
+    list_thetas = [list(x) for x in list(thetas)]
+
+    actions = [list([action_binner(x) for x in y]) for y in list_thetas]
+    revenues = mab_arr[:, 1]
+
+    # format the data
+    flat_actions = np.asarray(actions).flatten()
+    flat_revenues = revenues.flatten()
+    action_reward_array = list(zip(flat_actions, flat_revenues))
+
+    action_reward_df = pd.DataFrame(action_reward_array, columns=['action', 'reward'])
+    mean_reward_dic = action_reward_df.groupby('action').mean().to_dict()
+    st_dev_reward_dic = action_reward_df.groupby('action').std().to_dict()
+
+    # [(k, func(action_reward_array[k])) for k in action_reward_array.keys()]
+    
+    return mab_input[-1, 2]
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
@@ -33,7 +77,8 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         information_dump = {
             "Message": "Very First Call to our function",
             "Number of Competitors": None,
-            "Time Period": 1
+            "Time Period": 1,
+            "revenue_history": []
         }
 
         random_prices = np.round(np.random.uniform(30, 80, 3), 1)
@@ -62,39 +107,43 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         my_last_price = prices_historical[0, :, :]
 
         # Product prices
-        last_prices_item1 = prices_historical[:, 0, :]
-        last_prices_item2 = prices_historical[:, 1, :]
-        last_prices_item3 = prices_historical[:, 2, :]
+        last_prices_item1 = np.asarray(prices_historical[:, 0, :])
+        last_prices_item2 = np.asarray(prices_historical[:, 1, :])
+        last_prices_item3 = np.asarray(prices_historical[:, 2, :])
+
+        # Our last price
+        our_last_price = np.asarray(prices_historical[0, :, -1])
+
 
         # Use exponential smoothing to forecast expected competitor price.
-        alpha = 0.55
-        fit_item1 = SimpleExpSmoothing(np.asarray(last_prices_item1)).fit(smoothing_level=alpha,optimized=False)
-        fit_item2 = SimpleExpSmoothing(np.asarray(last_prices_item2)).fit(smoothing_level=alpha,optimized=False)
-        fit_item3 = SimpleExpSmoothing(np.asarray(last_prices_item3)).fit(smoothing_level=alpha,optimized=False)
+        lag = 4
 
         # Expected pricing of each competitor, call this theta value
-        item1_price = fit_item1.forecast(1)[0]
-        item2_price = fit_item2.forecast(1)[0]
-        item3_price = fit_item3.forecast(1)[0]
-        market_price = [item1_price, item2_price, item3_price]
-        # Save competitor theta and demand
+        item1_price = np.mean(last_prices_item1[1:, -lag:])
+        item2_price = np.mean(last_prices_item2[2:, -lag:])
+        item3_price = np.mean(last_prices_item3[3:, -lag:])
+        recent_market_price = [item1_price, item2_price, item3_price]
 
-        # if we have only 2 competitors we use the minimum price anyone used
-        if n_competitors == 2:
-            min_red_factor = 0.05
-            next_price_p1 = np.min(last_prices_p1).round(1) * (1 - min_red_factor)
-            next_price_p2 = np.min(last_prices_p2).round(1) * (1 - min_red_factor)
-            next_price_p3 = np.min(last_prices_p3).round(1) * (1 - min_red_factor)
+        # Historical revenues, theta defined as ratio of our price to market prices
+        last_revenues = [a*b for a,b in zip(our_last_price, demand_historical[:, -1])]  
+        market_thetas = [a/b for a,b in zip(our_last_price, recent_market_price)]       
         
-        # if we have more than 2 competitors we use the mean price anyone used
-        elif n_competitors > 2:
-            z_score_red_factor = 0.1
-            next_price_p1 = np.mean(last_prices_p1).round(1) - z_score_red_factor * np.std(last_prices_p1)
-            next_price_p2 = np.mean(last_prices_p2).round(1) - z_score_red_factor * np.std(last_prices_p2)
-            next_price_p3 = np.mean(last_prices_p3).round(1) - z_score_red_factor * np.std(last_prices_p3)
+        # 5 categories of pricing
 
+        information_dump["revenue_history"].append( [market_thetas, last_revenues, recent_market_price, list(demand_historical[:, -1])] )
+
+        z_score_red_factor = 0.1
+        next_price_p1 = np.mean(last_prices_p1).round(1) - z_score_red_factor * np.std(last_prices_p1)
+        next_price_p2 = np.mean(last_prices_p2).round(1) - z_score_red_factor * np.std(last_prices_p2)
+        next_price_p3 = np.mean(last_prices_p3).round(1) - z_score_red_factor * np.std(last_prices_p3)
+
+        if information_dump["Time Period"] < 11:
+            return_val = ([next_price_p1, next_price_p2, next_price_p3], information_dump)
+        else:
+            price_values = olig_mab_mechanism(information_dump["revenue_history"])
+            return_val = (price_values, information_dump)        
         # Update information dump message
         information_dump["Message"] = ""
-        return ([998, 998, 998], information_dump)
+        # return ([998, 998, 998], information_dump)
 
-        return ([next_price_p1, next_price_p2, next_price_p3], information_dump)
+        return return_val

@@ -400,7 +400,7 @@ if __name__ == "__main__":
                 "Selected scenario: " + str(scenario) + " not supported. Stop testing!"
             )
         sys.exit()
-
+    
     try:
         log.info("Importing the function for the " + str(scenario) + " pricing scenario.")
         user_code = importlib.import_module("dpc." + str(scenario))
