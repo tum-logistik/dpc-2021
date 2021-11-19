@@ -32,6 +32,7 @@ def action_binner(v):
     return "+1"
 
 def rev_binner(v):
+    # small undercut +1
     if v == "-1":
         return np.random.uniform(0.95, 1.0, 1)[0]
     # small premium +1
