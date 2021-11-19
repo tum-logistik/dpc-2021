@@ -31,7 +31,27 @@ def action_binner(v):
         return "+3"
     return "+1"
 
-def olig_mab_mechanism(mab_input):
+def rev_binner(v):
+    if v == "-1":
+        return np.random.uniform(0.95, 1.0, 1)[0]
+    # small premium +1
+    if v == "+1":
+        return np.random.uniform(1.0, 1.05, 1)[0]
+    # medium undercut
+    if v == "-2":
+        return np.random.uniform(0.7, 0.95, 1)[0]
+    # medium premium
+    if v == "+2":
+        return np.random.uniform(1.05, 1.3, 1)[0]
+    # large undercut
+    if v == "-3":
+        return np.random.uniform(0.7, 0.1, 1)[0]
+    # medium premium
+    if v == "+3":
+        return np.random.uniform(1.3, 2.0, 1)[0]
+    return np.random.uniform(0.75, 1.25, 1)[0]
+    
+def olig_mab_mechanism(mab_input, recent_market_price):
     mab_arr = np.asarray(mab_input)
     thetas = mab_arr[:, 0]
     list_thetas = [list(x) for x in list(thetas)]
@@ -40,17 +60,38 @@ def olig_mab_mechanism(mab_input):
     revenues = mab_arr[:, 1]
 
     # format the data
-    flat_actions = np.asarray(actions).flatten()
-    flat_revenues = revenues.flatten()
-    action_reward_array = list(zip(flat_actions, flat_revenues))
+    oligo_arms = ["-1", "-1", "-1"]
+    mean_reward_tracker = []
+    std_reward_tracker = []
+    for p in range(0, revenues.shape[1]):
+        flat_actions = np.asarray(actions)[:, p]
+        flat_revenues = revenues[:, p]
+        action_reward_array = list(zip(flat_actions, flat_revenues))
 
-    action_reward_df = pd.DataFrame(action_reward_array, columns=['action', 'reward'])
-    mean_reward_dic = action_reward_df.groupby('action').mean().to_dict()
-    st_dev_reward_dic = action_reward_df.groupby('action').std().to_dict()
+        action_reward_df = pd.DataFrame(action_reward_array, columns=['action', 'reward'])
+        mean_reward_dic = action_reward_df.groupby('action').mean().to_dict()['reward']
+        st_dev_reward_dic = action_reward_df.groupby('action').std().to_dict()['reward']
 
-    # [(k, func(action_reward_array[k])) for k in action_reward_array.keys()]
+        mean_reward_tracker.append(mean_reward_dic)
+        std_reward_tracker.append(st_dev_reward_dic)
+
+        # thompson sampling, simulate each arm using normal distribution
+        arms = list(mean_reward_dic.keys())
+        max_arm = arms[0]
+        previous_random_max = 0.0
+        for a in arms:
+            arm_mean = mean_reward_dic[a]
+            arm_std = st_dev_reward_dic[a]
+            random_play = np.random.normal(arm_mean, arm_std, 1)[0]
+            if np.isnan(random_play):
+                random_play = arm_mean
+            if random_play > previous_random_max:
+                max_arm = a
+        oligo_arms[p] = max_arm
+    theta_values = [rev_binner(x) for x in oligo_arms]
+    price_suggestion = [a*b for a,b in zip(theta_values, recent_market_price)]
     
-    return mab_input[-1, 2]
+    return price_suggestion
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
@@ -140,7 +181,7 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         if information_dump["Time Period"] < 11:
             return_val = ([next_price_p1, next_price_p2, next_price_p3], information_dump)
         else:
-            price_values = olig_mab_mechanism(information_dump["revenue_history"])
+            price_values = olig_mab_mechanism(information_dump["revenue_history"], recent_market_price)
             return_val = (price_values, information_dump)        
         # Update information dump message
         information_dump["Message"] = ""
