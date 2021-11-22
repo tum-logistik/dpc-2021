@@ -7,7 +7,6 @@ Created on Tue June 11 10:56:03 2019
 
 import numpy as np
 import pandas as pd
-from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 
 def action_binner(v):
     # 4 categories of actions
@@ -157,8 +156,8 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         our_last_price = np.asarray(prices_historical[0, :, -1])
 
 
-        # Use exponential smoothing to forecast expected competitor price.
-        lag = 4
+        # Use a lagged value to average out competitor price.
+        lag = 21
 
         # Expected pricing of each competitor, call this theta value
         item1_price = np.mean(last_prices_item1[1:, -lag:])
