@@ -157,7 +157,7 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
 
 
         # Use a lagged value to average out competitor price.
-        lag = 14
+        lag = 21
 
         # Expected pricing of each competitor, call this theta value
         item1_price = np.mean(last_prices_item1[1:, -lag:])
