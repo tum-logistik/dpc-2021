@@ -238,12 +238,7 @@ def test_run_dynamic(user_code, n_selling_periods, print_output = False, num_com
 
     information_dump = None
 
-<<<<<<< HEAD
     prices_competitor = [[] for _ in range(7)]
-=======
-
-    prices_competitor = [[] for _ in range(num_competitors)]
->>>>>>> main
 
     demand = []
     price = 1
