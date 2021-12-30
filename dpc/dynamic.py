@@ -6,13 +6,8 @@ Created on Tue June 11 10:56:03 2019
 """
 
 import numpy as np
-<<<<<<< HEAD
 from sklearn.linear_model import LinearRegression
 
-=======
-from mab_method import *
-from sklearn.linear_model import LinearRegression
->>>>>>> main
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
