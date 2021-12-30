@@ -72,4 +72,23 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         # Update information dump message
         information_dump["Message"] = ""
 
+        if next_price_p1 < 15.0:
+            next_price_p1 = 15.1
+        
+        if next_price_p2 < 15.0:
+            next_price_p2 = 15.1
+        
+        if next_price_p3 < 15.0:
+            next_price_p3 = 15.1
+        
+        if next_price_p1 > 115.1:
+            next_price_p1 = 115.0
+        
+        if next_price_p2 > 115.1:
+            next_price_p2 = 115.0
+        
+        if next_price_p3 > 115.1:
+            next_price_p3 = 115.0
+        
+
         return ([next_price_p1, next_price_p2, next_price_p3], information_dump)

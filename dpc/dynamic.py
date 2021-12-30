@@ -6,8 +6,8 @@ Created on Tue June 11 10:56:03 2019
 """
 
 import numpy as np
-from mab_method import *
 from sklearn.linear_model import LinearRegression
+
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
@@ -63,19 +63,44 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         elif current_period > 3:
 
             # Get last 3 competitor prices for each competitor
-            last_prices = prices_historical[1:, -n_competitors:]
-            
+            look_back_time = 8
+            max_regression_lookback = 50
+            # last_prices = prices_historical[1:, -look_back_time:]
+
+            historical_prices = np.array(prices_historical)
+            demand_historical_array = np.array(demand_historical)# [1:]
+
             # Compute Mean of oldest, middle and newest prices separately
-            oldest_prices_mean = np.mean(last_prices[:,0])
-            middle_prices_mean = np.mean(last_prices[:,1])
-            newest_prices_mean = np.mean(last_prices[:,2])
+            # oldest_prices_mean = np.mean(last_prices[:,0])
+            # middle_prices_mean = np.mean(last_prices[:,1])
+            # newest_prices_mean = np.mean(last_prices[:,2])
+
+            # price_values = np.array([oldest_prices_mean, middle_prices_mean, newest_prices_mean])
 
             # Combine means using separate weights
-            next_price = np.round(0.2*oldest_prices_mean + 0.3 * middle_prices_mean + 0.5 * newest_prices_mean, 1)
+            # next_price = np.round(0.2*oldest_prices_mean + 0.3 * middle_prices_mean + 0.5 * newest_prices_mean, 1)
 
-            # Regress demand w.r.t. previous prices, save model
+            # weights = lm_model.fit(historical_prices, demand_historical_array)
+            x = historical_prices[:, -max_regression_lookback:].T
+            to_stack = np.ones((x.shape[0], 1))
+            x_with_coef = np.hstack((to_stack, x))
+            y = demand_historical_array[-max_regression_lookback:].T
+            # m, c = np.linalg.lstsq(historical_prices, demand_historical_array, rcond=None)[0]
+            reg_coefs = np.linalg.pinv((x_with_coef.T).dot(x_with_coef)).dot(x_with_coef.T.dot(y))
 
+            latest_prices_array = x_with_coef[-1,:]
+            demand_prediction = reg_coefs.dot(latest_prices_array)
 
+            # where does predicted demand fall within hisotrical distribution?
+            mean_historical_demand = np.mean(demand_historical_array)
+            mean_historical_demand_std = np.std(demand_historical_array)
 
+            historical_market_avg_price = np.mean(historical_prices, axis=0)
+            historical_market_price_std = np.std(historical_market_avg_price)
 
-            return (next_price, information_dump)
+            # adjust pricing based on z-score
+            z_score_forecast_demand = (demand_prediction - mean_historical_demand)/mean_historical_demand_std
+
+            next_price_lm = np.mean(historical_market_avg_price[-look_back_time:]) + z_score_forecast_demand*historical_market_price_std
+            
+            return (next_price_lm, information_dump)

@@ -80,10 +80,9 @@ def dynamic_request(t, prices_self, price,
             prices_competitor[i].append(np.random.randint(20,80))
         
         prices_historical = [ prices_self]
-        for c in range(1, len(prices_competitor)):
-            prices_historical.append(prices_competitor[c])
-        # prices_historical = [ prices_self, prices_competitor[0], prices_competitor[1],prices_competitor[2]]
-
+        for i in range(1, len(prices_competitor)):
+            prices_historical.append(prices_competitor[i])
+        
         demand.append(np.random.randint(0,10))
         demand_historical = copy.deepcopy(demand)
         request_input = {
@@ -232,8 +231,7 @@ def test_run_dynamic(user_code, n_selling_periods, print_output = False, num_com
 
     information_dump = None
 
-
-    prices_competitor = [[] for _ in range(num_competitors)]
+    prices_competitor = [[] for _ in range(7)]
 
     demand = []
     price = 1
@@ -256,20 +254,21 @@ def test_run_dynamic(user_code, n_selling_periods, print_output = False, num_com
 
         start_time = time.time()
         error_this_period = False
-        try:
-            price, information_dump = user_code.p(**request_input)
-            if isinstance(price, numbers.Number):
-                if price >= 0.1 and price <= 999:
-                    pass
-                else:
-                    raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
-            else:
-                raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
-        except:
-            error = traceback.format_exc()
-            test_run_erros.add(error)
-            price = np.random.randint(20,80)
-            error_this_period = True
+        price, information_dump = user_code.p(**request_input)
+        # try:
+        #     price, information_dump = user_code.p(**request_input)
+        #     if isinstance(price, numbers.Number):
+        #         if price >= 0.1 and price <= 999:
+        #             pass
+        #         else:
+        #             raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
+        #     else:
+        #         raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
+        # except:
+        #     error = traceback.format_exc()
+        #     test_run_erros.add(error)
+        #     price = np.random.randint(20,80)
+        #     error_this_period = True
         end_time = time.time()
 
         user_results.loc[len(user_results)] = [selling_period_in_current_season, price, None, None, error_this_period, (end_time-start_time)*1000] 
