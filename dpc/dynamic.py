@@ -6,6 +6,8 @@ Created on Tue June 11 10:56:03 2019
 """
 
 import numpy as np
+from mab_method import *
+from sklearn.linear_model import LinearRegression
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
@@ -61,7 +63,7 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         elif current_period > 3:
 
             # Get last 3 competitor prices for each competitor
-            last_prices = prices_historical[1:, -3:]
+            last_prices = prices_historical[1:, -n_competitors:]
             
             # Compute Mean of oldest, middle and newest prices separately
             oldest_prices_mean = np.mean(last_prices[:,0])
@@ -70,5 +72,10 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
 
             # Combine means using separate weights
             next_price = np.round(0.2*oldest_prices_mean + 0.3 * middle_prices_mean + 0.5 * newest_prices_mean, 1)
+
+            # Regress demand w.r.t. previous prices, save model
+
+
+
 
             return (next_price, information_dump)
