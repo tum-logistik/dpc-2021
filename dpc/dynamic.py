@@ -6,6 +6,8 @@ Created on Tue June 11 10:56:03 2019
 """
 
 import numpy as np
+from sklearn.linear_model import LinearRegression
+
 
 def p(prices_historical=None, demand_historical=None, information_dump=None):
     """
@@ -61,14 +63,36 @@ def p(prices_historical=None, demand_historical=None, information_dump=None):
         elif current_period > 3:
 
             # Get last 3 competitor prices for each competitor
-            last_prices = prices_historical[1:, -3:]
-            
+            look_back_time = 3
+            last_prices = prices_historical[1:, -look_back_time:]
+
+            historical_prices = np.array(prices_historical)
+
+            subset = historical_prices[:, -look_back_time:]
+            demand_historical_array = np.array(demand_historical)# [1:]
+
+
             # Compute Mean of oldest, middle and newest prices separately
             oldest_prices_mean = np.mean(last_prices[:,0])
             middle_prices_mean = np.mean(last_prices[:,1])
             newest_prices_mean = np.mean(last_prices[:,2])
 
+            price_values = np.array([oldest_prices_mean, middle_prices_mean, newest_prices_mean])
+
             # Combine means using separate weights
             next_price = np.round(0.2*oldest_prices_mean + 0.3 * middle_prices_mean + 0.5 * newest_prices_mean, 1)
+
+            smoothed_demand = np.mean(demand_historical[-3:])
+            # Regress demand w.r.t. prices 
+            lm_model = LinearRegression()
+            last_demand_obs = price_values[-1]
+
+            # weights = lm_model.fit(historical_prices, demand_historical_array)
+            x = historical_prices.T
+            y = demand_historical_array.T
+            # m, c = np.linalg.lstsq(historical_prices, demand_historical_array, rcond=None)[0]
+            # a,b,c,d = np.linalg.pinv((x.T).dot(x)).dot(x.T.dot(y))
+            reg_coefs = np.linalg.pinv((x.T).dot(x)).dot(x.T.dot(y))
+
 
             return (next_price, information_dump)
