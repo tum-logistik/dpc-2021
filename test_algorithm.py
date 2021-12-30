@@ -80,16 +80,9 @@ def dynamic_request(t, prices_self, price,
             prices_competitor[i].append(np.random.randint(20,80))
         
         prices_historical = [ prices_self]
-<<<<<<< HEAD
         for i in range(1, len(prices_competitor)):
             prices_historical.append(prices_competitor[i])
         
-=======
-        for c in range(1, len(prices_competitor)):
-            prices_historical.append(prices_competitor[c])
-        # prices_historical = [ prices_self, prices_competitor[0], prices_competitor[1],prices_competitor[2]]
-
->>>>>>> main
         demand.append(np.random.randint(0,10))
         demand_historical = copy.deepcopy(demand)
         request_input = {
