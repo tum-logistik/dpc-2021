@@ -172,20 +172,21 @@ def test_run_duopoly(user_code, n_selling_seasons, n_selling_periods, print_outp
 
             start_time = time.time()
             error_this_period = False
-            try:
-                price, information_dump = user_code.p(**request_input)
-                if isinstance(price, numbers.Number):
-                    if price >= 0.1 and price <= 999:
-                        pass
-                    else:
-                        raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
-                else:
-                    raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
-            except:
-                error = traceback.format_exc()
-                test_run_erros.add(error)
-                price = np.random.randint(20,80)
-                error_this_period = True
+            price, information_dump = user_code.p(**request_input)
+            # try:
+            #     price, information_dump = user_code.p(**request_input)
+            #     if isinstance(price, numbers.Number):
+            #         if price >= 0.1 and price <= 999:
+            #             pass
+            #         else:
+            #             raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
+            #     else:
+            #         raise Exception('price output ' + str(price) + ' is not a valid number in range 0.1 to 999 in selling period: ' + str(selling_period_in_current_season))
+            # except:
+            #     error = traceback.format_exc()
+            #     test_run_erros.add(error)
+            #     price = np.random.randint(20,80)
+            #     error_this_period = True
             end_time = time.time()
 
             user_results.loc[len(user_results)] = [selling_season, selling_period_in_current_season, price, request_input["competitor_has_capacity_current_period_in_current_season"], None, None, error_this_period, (end_time-start_time)*1000] 

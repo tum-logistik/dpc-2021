@@ -7,6 +7,56 @@ Created on Tue June 11 10:56:03 2019
 
 import numpy as np
 
+LEARNING_RATE = 1e-2
+DISCOUNT_FACTOR = 0.95
+
+
+PRICE_GRID = np.linspace(25, 85, num=61)
+CAPACITY_GRID = np.linspace(0, 80, num=81)
+
+# initialize Q Matrix as dict()
+Q_MATRIX = dict()
+
+
+for i in range(CAPACITY_GRID.shape[0]):
+    PRICE_DICT = dict()
+    for c in range(PRICE_GRID.shape[0]):
+        PRICE_DICT[PRICE_GRID[c]] = np.random.uniform(0, 100)
+    
+    Q_MATRIX[CAPACITY_GRID[i]] = PRICE_DICT
+
+
+def get_global_max_q_state(q_matrix):
+    max_key1 = 0
+    max_key = 0
+    max_val = 0
+    for i in range(len(q_matrix)):
+        max_key_temp = max(q_matrix[i], key=q_matrix[i].get)
+        max_val_temp = max(q_matrix[i].values())
+        max_key1_temp = i
+
+        if max_val_temp > max_val:
+            max_key = max_key_temp
+            max_val = max_val_temp
+            max_key1 = max_key1_temp
+    
+    return max_key1, max_key, max_val
+
+def get_max_q_from_state(q_matrix, max_key1):
+    max_key = 0
+    max_val = 0
+    state_q_dic = q_matrix[max_key1]
+
+    for i in state_q_dic.keys():
+        max_key_temp = i
+        max_val_temp = state_q_dic[i]
+        if max_val_temp > max_val:
+            max_key = i
+            max_val = max_val_temp
+    
+    return max_key, max_val
+
+
 
 def p(
     current_selling_season,
@@ -93,6 +143,8 @@ def p(
             "Capacity": capacity,
             "Period_Capacity_Empty": False
         }
+
+        
         return (round(np.random.uniform(30, 80), 1), information_dump)
 
     # Return random price for first 10 periods
@@ -117,6 +169,8 @@ def p(
         information_dump["Capacity"] = new_capacity
         information_dump["Period_Capacity_Empty"] = stockout_period
 
+        
+
         return (round(np.random.uniform(30, 80), 1), information_dump)
 
     # Use moving average for selling periods larger than 10
@@ -139,9 +193,21 @@ def p(
         ma_adjustment = information_dump["Moving_Average_Adjustment"]
 
         # Get last 3 prices from the competitor and compute next price as mean * (1 + adjustment)
+        previous_self_price = prices_historical_in_current_season[0][-1]
         prices_competitor = prices_historical_in_current_season[1]
         last_3_prices_competitor = prices_competitor[-3:]
         next_price = np.mean(last_3_prices_competitor) * (1 + ma_adjustment)
+        latest_demand = demand_historical_in_current_season[-1]
+
+        # set price that maximizes Q
+        # opt_inventory, opt_price, q_value = get_max_q_state(Q_MATRIX)
+        clipped_capacity = capacity_last_period if capacity_last_period > 0 else 0
+        opt_price, max_q_value = get_max_q_from_state(Q_MATRIX, clipped_capacity)
+        _, max_q_value_next = get_max_q_from_state(Q_MATRIX, clipped_capacity)
+
+        # update q value, based on demand maximization, unfortunately profit is not passed in, neither do we know the immediate next demand...
+        prev_q_val = Q_MATRIX[clipped_capacity][round(previous_self_price)]
+        Q_MATRIX[clipped_capacity][round(previous_self_price)] = prev_q_val + LEARNING_RATE * (latest_demand + DISCOUNT_FACTOR * max_q_value_next - prev_q_val )
 
         information_dump["Message"] = "Moving Average"
         information_dump["Selling_Season"] = current_selling_season
@@ -149,4 +215,4 @@ def p(
         information_dump["Capacity"] = new_capacity
         information_dump["Period_Capacity_Empty"] = stockout_period
 
-        return (next_price, information_dump)
+        return (opt_price, information_dump)
